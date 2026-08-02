@@ -5,32 +5,51 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { Loader2 } from "lucide-react"
+import { authFetch, clearAuth, getToken, type AuthUser } from "@/lib/auth-client"
 
 export function AuthCheck({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<AuthUser | null>(null)
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
-    // Check if user is logged in
-    const currentUser = localStorage.getItem("currentUser")
+    const verifyAuth = async () => {
+      const token = getToken()
 
-    if (currentUser) {
-      const parsedUser = JSON.parse(currentUser)
-      setUser(parsedUser)
-      setIsAuthenticated(true)
-
-      // If user is trying to access admin pages but is not a superadmin
-      if (pathname.startsWith("/admin") && parsedUser.role !== "superadmin") {
-        router.push("/dashboard")
+      if (!token) {
+        router.push("/login")
+        setIsLoading(false)
+        return
       }
-    } else {
-      router.push("/login")
+
+      try {
+        const response = await authFetch("/api/auth/me")
+
+        if (!response.ok) {
+          clearAuth()
+          router.push("/login")
+          setIsLoading(false)
+          return
+        }
+
+        const data = await response.json()
+        setUser(data.user)
+        setIsAuthenticated(true)
+
+        if (pathname.startsWith("/admin") && data.user.role !== "superadmin") {
+          router.push("/dashboard")
+        }
+      } catch {
+        clearAuth()
+        router.push("/login")
+      } finally {
+        setIsLoading(false)
+      }
     }
 
-    setIsLoading(false)
+    verifyAuth()
   }, [router, pathname])
 
   if (isLoading) {

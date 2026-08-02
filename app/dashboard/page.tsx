@@ -13,6 +13,7 @@ import { RecentEntries } from "@/components/recent-entries"
 import { MoodSelector } from "@/components/mood-selector"
 import { useToast } from "@/hooks/use-toast"
 import { getUserEntries, getUserMoodData, saveUserMoodData } from "@/lib/journal-service"
+import { authFetch, getCurrentUser } from "@/lib/auth-client"
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
@@ -23,16 +24,14 @@ export default function DashboardPage() {
 
   useEffect(() => {
     // Get user data
-    const userData = localStorage.getItem("currentUser")
-    if (userData) {
+    const parsedUser = getCurrentUser()
+    if (parsedUser) {
       try {
-        const parsedUser = JSON.parse(userData)
         setUser(parsedUser)
 
-        // Fetch journal entries from API
         const fetchEntries = async () => {
           try {
-            const response = await fetch(`/api/entries?userId=${parsedUser.id || parsedUser._id}`)
+            const response = await authFetch("/api/entries")
             if (response.ok) {
               const userEntries = await response.json()
               setEntries(userEntries)

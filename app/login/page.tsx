@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label"
 import { PenIcon, ArrowLeft, Eye, EyeOff, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { isValidEmail } from "@/lib/validation"
+import { setAuth } from "@/lib/auth-client"
+import { AuthRedirect } from "@/components/auth-redirect"
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -100,19 +102,16 @@ export default function LoginPage() {
         return
       }
 
-      const user = data.user
-
-      // Set current user
-      localStorage.setItem("currentUser", JSON.stringify(user))
+      setAuth(data.token, data.user)
 
       toast({
         title: "Login successful!",
-        description: `Welcome back, ${user.name}!`,
+        description: `Welcome back, ${data.user.name}!`,
       })
 
       // Redirect based on user role
       setTimeout(() => {
-        if (user.role === "superadmin") {
+        if (data.user.role === "superadmin") {
           router.push("/admin")
         } else {
           router.push("/dashboard")
@@ -131,6 +130,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-gray-950 to-gray-900">
+      <AuthRedirect />
       <header className="sticky top-0 z-10 border-b border-gray-800 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between py-4">
           <Link href="/" className="flex items-center gap-2">

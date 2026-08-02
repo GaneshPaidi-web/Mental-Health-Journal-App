@@ -3,13 +3,13 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
+import { clearAuth } from "@/lib/auth-client"
 
 export default function LogoutPage() {
   const router = useRouter()
 
   useEffect(() => {
-    // Clear current user
-    localStorage.removeItem("currentUser")
+    clearAuth()
 
     // Redirect to home page
     setTimeout(() => {

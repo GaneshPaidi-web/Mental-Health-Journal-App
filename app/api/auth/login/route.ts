@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import dbConnect from "@/lib/mongodb"
 import User from "@/models/User"
 import bcrypt from "bcryptjs"
+import { signToken } from "@/lib/jwt"
 
 export async function POST(req: Request) {
   try {
@@ -36,15 +37,25 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Invalid email or password" }, { status: 401 })
     }
 
+    const userPayload = {
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    }
+
+    const token = signToken({
+      userId: userPayload.id,
+      email: userPayload.email,
+      name: userPayload.name,
+      role: userPayload.role,
+    })
+
     return NextResponse.json(
       {
         message: "Login successful",
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-        },
+        token,
+        user: userPayload,
       },
       { status: 200 },
     )

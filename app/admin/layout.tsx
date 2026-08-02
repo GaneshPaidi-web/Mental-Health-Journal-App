@@ -5,6 +5,7 @@ import type React from "react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Loader2 } from "lucide-react"
+import { authFetch, clearAuth, getToken } from "@/lib/auth-client"
 
 export default function AdminLayout({
   children,
@@ -16,23 +17,40 @@ export default function AdminLayout({
   const router = useRouter()
 
   useEffect(() => {
-    // Check if user is logged in and is a superadmin
-    const currentUser = localStorage.getItem("currentUser")
+    const verifyAdmin = async () => {
+      const token = getToken()
 
-    if (currentUser) {
-      const user = JSON.parse(currentUser)
-      if (user.role === "superadmin") {
-        setIsAuthorized(true)
-      } else {
-        // Redirect to dashboard if not superadmin
-        router.push("/dashboard")
+      if (!token) {
+        router.push("/login")
+        setIsLoading(false)
+        return
       }
-    } else {
-      // Redirect to login if not logged in
-      router.push("/login")
+
+      try {
+        const response = await authFetch("/api/auth/me")
+
+        if (!response.ok) {
+          clearAuth()
+          router.push("/login")
+          setIsLoading(false)
+          return
+        }
+
+        const data = await response.json()
+        if (data.user.role === "superadmin") {
+          setIsAuthorized(true)
+        } else {
+          router.push("/dashboard")
+        }
+      } catch {
+        clearAuth()
+        router.push("/login")
+      } finally {
+        setIsLoading(false)
+      }
     }
 
-    setIsLoading(false)
+    verifyAdmin()
   }, [router])
 
   if (isLoading) {

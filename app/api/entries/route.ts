@@ -1,19 +1,15 @@
 import { NextResponse } from "next/server"
 import dbConnect from "@/lib/mongodb"
 import Entry from "@/models/Entry"
+import { authenticateRequest, isAuthError } from "@/lib/auth"
 
-// GET all entries for a user
 export async function GET(req: Request) {
   try {
+    const auth = authenticateRequest(req)
+    if (isAuthError(auth)) return auth
+
     await dbConnect()
-    const { searchParams } = new URL(req.url)
-    const userId = searchParams.get("userId")
-
-    if (!userId) {
-      return NextResponse.json({ message: "userId is required" }, { status: 400 })
-    }
-
-    const entries = await Entry.find({ userId }).sort({ date: -1 })
+    const entries = await Entry.find({ userId: auth.userId }).sort({ date: -1 })
     return NextResponse.json(entries, { status: 200 })
   } catch (error: any) {
     console.error("GET entries error:", error)
@@ -21,17 +17,18 @@ export async function GET(req: Request) {
   }
 }
 
-// CREATE a new entry
 export async function POST(req: Request) {
   try {
+    const auth = authenticateRequest(req)
+    if (isAuthError(auth)) return auth
+
     await dbConnect()
     const entryData = await req.json()
 
-    if (!entryData.userId) {
-      return NextResponse.json({ message: "userId is required" }, { status: 400 })
-    }
-
-    const entry = await Entry.create(entryData)
+    const entry = await Entry.create({
+      ...entryData,
+      userId: auth.userId,
+    })
     return NextResponse.json(entry, { status: 201 })
   } catch (error: any) {
     console.error("POST entries error:", error)

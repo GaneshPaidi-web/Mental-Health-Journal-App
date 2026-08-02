@@ -11,10 +11,12 @@ import {
   CheckCircle2,
   ArrowRight,
 } from "lucide-react"
+import { AuthRedirect } from "@/components/auth-redirect"
 
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-gray-950 to-gray-900 text-gray-50">
+      <AuthRedirect />
       <header className="sticky top-0 z-10 border-b border-gray-800 bg-gray-950/95 backdrop-blur supports-[backdrop-filter]:bg-gray-950/60">
         <div className="container flex h-16 items-center justify-between py-4">
           <div className="flex items-center gap-2">

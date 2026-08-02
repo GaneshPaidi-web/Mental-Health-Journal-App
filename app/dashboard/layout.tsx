@@ -8,6 +8,7 @@ import { MobileNav } from "@/components/mobile-nav"
 import { PenIcon } from "lucide-react"
 import Link from "next/link"
 import { ModeToggle } from "@/components/mode-toggle"
+import { getCurrentUser } from "@/lib/auth-client"
 
 export default function DashboardLayout({
   children,
@@ -18,9 +19,9 @@ export default function DashboardLayout({
 
   useEffect(() => {
     // Get user data
-    const userData = localStorage.getItem("currentUser")
-    if (userData) {
-      setUser(JSON.parse(userData))
+    const currentUser = getCurrentUser()
+    if (currentUser) {
+      setUser(currentUser)
     }
   }, [])
 

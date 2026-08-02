@@ -14,6 +14,8 @@ import { useToast } from "@/hooks/use-toast"
 import { initializeNewUser } from "@/lib/journal-service"
 import { isValidEmail, isValidUsername, checkPasswordStrength, doPasswordsMatch } from "@/lib/validation"
 import { Progress } from "@/components/ui/progress"
+import { setAuth } from "@/lib/auth-client"
+import { AuthRedirect } from "@/components/auth-redirect"
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -143,8 +145,7 @@ export default function RegisterPage() {
 
       const newUser = data.user
 
-      // Set current user (for session management)
-      localStorage.setItem("currentUser", JSON.stringify(newUser))
+      setAuth(data.token, newUser)
 
       // Initialize new user with sample data (Note: this still uses local logic for now, could be API-fied later)
       initializeNewUser(newUser.id)
@@ -175,6 +176,7 @@ export default function RegisterPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-gray-950 to-gray-900">
+      <AuthRedirect />
       <header className="sticky top-0 z-10 border-b border-gray-800 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container flex h-16 items-center justify-between py-4">
           <Link href="/" className="flex items-center gap-2">

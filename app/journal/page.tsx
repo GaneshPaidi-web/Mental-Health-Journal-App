@@ -9,6 +9,7 @@ import { PlusIcon, SearchIcon } from "lucide-react"
 import type { JournalEntry } from "@/lib/types"
 import { formatDate } from "@/lib/utils"
 import { getUserEntries } from "@/lib/journal-service"
+import { authFetch, getCurrentUser } from "@/lib/auth-client"
 
 export default function JournalPage() {
   const [user, setUser] = useState<any>(null)
@@ -18,15 +19,13 @@ export default function JournalPage() {
 
   useEffect(() => {
     // Get user data
-    const userData = localStorage.getItem("currentUser")
-    if (userData) {
-      const parsedUser = JSON.parse(userData)
+    const parsedUser = getCurrentUser()
+    if (parsedUser) {
       setUser(parsedUser)
 
-      // Fetch journal entries for this user from API
       const fetchEntries = async () => {
         try {
-          const response = await fetch(`/api/entries?userId=${parsedUser.id || parsedUser._id}`)
+          const response = await authFetch("/api/entries")
           if (response.ok) {
             const userEntries = await response.json()
             setEntries(userEntries)

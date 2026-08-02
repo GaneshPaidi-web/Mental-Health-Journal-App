@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts"
 import type { MoodData, JournalEntry } from "@/lib/types"
 import { getUserMoodData, getSampleMoodData } from "@/lib/journal-service"
+import { authFetch } from "@/lib/auth-client"
 
 interface MoodChartProps {
   userId?: string
@@ -20,7 +21,7 @@ export function MoodChart({ userId, entries }: MoodChartProps) {
       // Fetch if entries not provided (fallback)
       const fetchAndPrepare = async () => {
         try {
-          const response = await fetch(`/api/entries?userId=${userId}`)
+          const response = await authFetch("/api/entries")
           if (response.ok) {
             const userEntries = await response.json()
             prepareMoodChartData(userEntries)

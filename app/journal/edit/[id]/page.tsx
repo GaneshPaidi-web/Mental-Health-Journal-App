@@ -15,6 +15,7 @@ import { useToast } from "@/hooks/use-toast"
 import type { JournalEntry } from "@/lib/types"
 import { getUserEntries, saveUserEntries } from "@/lib/journal-service"
 import { BackToDashboard } from "@/components/back-to-dashboard"
+import { authFetch, getCurrentUser } from "@/lib/auth-client"
 
 export default function EditEntryPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
   const params = use(paramsPromise)
@@ -35,7 +36,7 @@ export default function EditEntryPage({ params: paramsPromise }: { params: Promi
   useEffect(() => {
     const fetchEntry = async (id: string) => {
       try {
-        const response = await fetch(`/api/entries/${id}`)
+        const response = await authFetch(`/api/entries/${id}`)
         if (response.ok) {
           const foundEntry = await response.json()
           setEntry(foundEntry)
@@ -64,9 +65,8 @@ export default function EditEntryPage({ params: paramsPromise }: { params: Promi
     }
 
     // Get user data
-    const userData = localStorage.getItem("currentUser")
-    if (userData) {
-      const parsedUser = JSON.parse(userData)
+    const parsedUser = getCurrentUser()
+    if (parsedUser) {
       setUser(parsedUser)
       fetchEntry(params.id)
     } else {
@@ -135,9 +135,8 @@ export default function EditEntryPage({ params: paramsPromise }: { params: Promi
     setIsSubmitting(true)
 
     try {
-      const response = await fetch(`/api/entries/${params.id}`, {
+      const response = await authFetch(`/api/entries/${params.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
           content,

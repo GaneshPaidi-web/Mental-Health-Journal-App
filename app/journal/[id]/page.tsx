@@ -22,6 +22,7 @@ import { formatDate, formatTime } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { getUserEntries, saveUserEntries } from "@/lib/journal-service"
 import { BackToDashboard } from "@/components/back-to-dashboard"
+import { authFetch, getCurrentUser } from "@/lib/auth-client"
 
 export default function JournalEntryPage({ params: paramsPromise }: { params: Promise<{ id: string }> }) {
   const params = use(paramsPromise)
@@ -33,16 +34,14 @@ export default function JournalEntryPage({ params: paramsPromise }: { params: Pr
 
   useEffect(() => {
     // Get user data
-    const userData = localStorage.getItem("currentUser")
-    if (userData) {
+    const parsedUser = getCurrentUser()
+    if (parsedUser) {
       try {
-        const parsedUser = JSON.parse(userData)
         setUser(parsedUser)
 
-        // Fetch journal entry from API
         const fetchEntry = async () => {
           try {
-            const response = await fetch(`/api/entries/${params.id}`)
+            const response = await authFetch(`/api/entries/${params.id}`)
             if (response.ok) {
               const foundEntry = await response.json()
               setEntry(foundEntry)
@@ -90,7 +89,7 @@ export default function JournalEntryPage({ params: paramsPromise }: { params: Pr
     if (!user) return
 
     try {
-      const response = await fetch(`/api/entries/${params.id}`, {
+      const response = await authFetch(`/api/entries/${params.id}`, {
         method: "DELETE",
       })
 

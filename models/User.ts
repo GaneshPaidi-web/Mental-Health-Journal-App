@@ -23,6 +23,15 @@ const UserSchema = new mongoose.Schema(
       enum: ["user", "superadmin"],
       default: "user",
     },
+    dob: {
+      type: String,
+      default: "",
+    },
+    gender: {
+      type: String,
+      enum: ["male", "female", "other", "prefer_not_to_say", ""],
+      default: "",
+    },
     resetPasswordToken: String,
     resetPasswordExpires: Date,
   },

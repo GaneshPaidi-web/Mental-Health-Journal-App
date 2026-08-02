@@ -11,12 +11,15 @@ import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
 import { ModeToggle } from "@/components/mode-toggle"
+import { clearAuth, authFetch } from "@/lib/auth-client"
 
 export default function SettingsPage() {
   const [user, setUser] = useState<any>(null)
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    dob: "",
+    gender: "",
   })
   const [notifications, setNotifications] = useState({
     dailyReminder: true,
@@ -33,30 +36,42 @@ export default function SettingsPage() {
       const parsedUser = JSON.parse(userData)
       setUser(parsedUser)
       setFormData({
-        name: parsedUser.name,
-        email: parsedUser.email,
+        name: parsedUser.name || "",
+        email: parsedUser.email || "",
+        dob: parsedUser.dob || "",
+        gender: parsedUser.gender || "",
       })
     }
   }, [])
 
-  const handleProfileUpdate = (e: React.FormEvent) => {
+  const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      // Update user in localStorage
-      const updatedUser = {
-        ...user,
-        name: formData.name,
-        email: formData.email,
+      // Call backend to update user profile in MongoDB
+      const response = await authFetch("/api/user", {
+        method: "PUT",
+        body: JSON.stringify({
+          name: formData.name,
+          dob: formData.dob,
+          gender: formData.gender,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to update profile on server")
       }
 
-      // Update current user
+      const data = await response.json()
+      const updatedUser = data.user
+
+      // Update current user in localStorage
       localStorage.setItem("currentUser", JSON.stringify(updatedUser))
 
-      // Update user in users array
+      // Update user in users array (local fallback)
       const users = JSON.parse(localStorage.getItem("users") || "[]")
-      const userIndex = users.findIndex((u: any) => u.id === user.id)
+      const userIndex = users.findIndex((u: any) => u.id === updatedUser.id)
 
       if (userIndex !== -1) {
         users[userIndex] = updatedUser
@@ -93,19 +108,28 @@ export default function SettingsPage() {
     })
   }
 
-  const handleDeleteAccount = () => {
+  const handleDeleteAccount = async () => {
+    setIsLoading(true)
     try {
-      // Remove user from users array
+      // Call backend to delete user and all associated data from MongoDB
+      const response = await authFetch("/api/user", {
+        method: "DELETE",
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to delete account on server")
+      }
+
+      // Remove user from local users array for client-side state
       const users = JSON.parse(localStorage.getItem("users") || "[]")
       const filteredUsers = users.filter((u: any) => u.id !== user.id)
       localStorage.setItem("users", JSON.stringify(filteredUsers))
 
-      // Clear current user
-      localStorage.removeItem("currentUser")
+      clearAuth()
 
       toast({
         title: "Account deleted",
-        description: "Your account has been deleted successfully.",
+        description: "Your account and all your data have been deleted successfully.",
       })
 
       // Redirect to home page
@@ -117,6 +141,8 @@ export default function SettingsPage() {
         description: "There was an error deleting your account. Please try again.",
         variant: "destructive",
       })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -171,10 +197,35 @@ export default function SettingsPage() {
                     id="email"
                     type="email"
                     value={formData.email}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
-                    className="rounded-lg"
-                    required
+                    disabled
+                    className="rounded-lg bg-muted text-muted-foreground"
                   />
+                  <p className="text-xs text-muted-foreground">Email address cannot be changed.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dob">Date of Birth</Label>
+                  <Input
+                    id="dob"
+                    type="date"
+                    value={formData.dob}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, dob: e.target.value }))}
+                    className="rounded-lg"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="gender">Gender</Label>
+                  <select
+                    id="gender"
+                    value={formData.gender}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, gender: e.target.value }))}
+                    className="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="" disabled>Select gender</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                    <option value="prefer_not_to_say">Prefer not to say</option>
+                  </select>
                 </div>
                 <Button type="submit" className="bg-teal-600 hover:bg-teal-700 rounded-lg" disabled={isLoading}>
                   {isLoading ? "Saving..." : "Save Changes"}

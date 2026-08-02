@@ -1,13 +1,23 @@
 import { NextResponse } from "next/server"
 import dbConnect from "@/lib/mongodb"
 import Entry from "@/models/Entry"
+import { authenticateRequest, isAuthError } from "@/lib/auth"
 
-// GET a single entry
+async function getAuthorizedEntry(id: string, userId: string, role: string) {
+  const entry = await Entry.findById(id)
+  if (!entry) return null
+  if (role !== "superadmin" && entry.userId.toString() !== userId) return null
+  return entry
+}
+
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = authenticateRequest(req)
+    if (isAuthError(auth)) return auth
+
     await dbConnect()
     const { id } = await params
-    const entry = await Entry.findById(id)
+    const entry = await getAuthorizedEntry(id, auth.userId, auth.role)
 
     if (!entry) {
       return NextResponse.json({ message: "Entry not found" }, { status: 404 })
@@ -20,21 +30,25 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   }
 }
 
-// UPDATE an entry
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = authenticateRequest(req)
+    if (isAuthError(auth)) return auth
+
     await dbConnect()
     const { id } = await params
-    const updateData = await req.json()
+    const existingEntry = await getAuthorizedEntry(id, auth.userId, auth.role)
 
-    const entry = await Entry.findByIdAndUpdate(id, updateData, {
-      new: true,
-      runValidators: true,
-    })
-
-    if (!entry) {
+    if (!existingEntry) {
       return NextResponse.json({ message: "Entry not found" }, { status: 404 })
     }
+
+    const updateData = await req.json()
+    const entry = await Entry.findByIdAndUpdate(
+      id,
+      { ...updateData, userId: auth.userId },
+      { new: true, runValidators: true },
+    )
 
     return NextResponse.json(entry, { status: 200 })
   } catch (error: any) {
@@ -43,18 +57,20 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   }
 }
 
-// DELETE an entry
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const auth = authenticateRequest(req)
+    if (isAuthError(auth)) return auth
+
     await dbConnect()
     const { id } = await params
+    const existingEntry = await getAuthorizedEntry(id, auth.userId, auth.role)
 
-    const entry = await Entry.findByIdAndDelete(id)
-
-    if (!entry) {
+    if (!existingEntry) {
       return NextResponse.json({ message: "Entry not found" }, { status: 404 })
     }
 
+    await Entry.findByIdAndDelete(id)
     return NextResponse.json({ message: "Entry deleted successfully" }, { status: 200 })
   } catch (error: any) {
     console.error("DELETE entry error:", error)

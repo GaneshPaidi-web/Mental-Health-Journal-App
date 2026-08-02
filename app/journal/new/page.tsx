@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast"
 import type { JournalEntry, MoodData } from "@/lib/types"
 import { getUserEntries, saveUserEntries, getUserMoodData, saveUserMoodData } from "@/lib/journal-service"
 import { BackToDashboard } from "@/components/back-to-dashboard"
+import { authFetch, getCurrentUser } from "@/lib/auth-client"
 
 export default function NewEntryPage() {
   const [user, setUser] = useState<any>(null)
@@ -30,10 +31,9 @@ export default function NewEntryPage() {
 
   useEffect(() => {
     // Get user data
-    const userData = localStorage.getItem("currentUser")
-    if (userData) {
+    const parsedUser = getCurrentUser()
+    if (parsedUser) {
       try {
-        const parsedUser = JSON.parse(userData)
         setUser(parsedUser)
       } catch (error) {
         console.error("Error parsing user data:", error)
@@ -111,11 +111,9 @@ export default function NewEntryPage() {
 
     // Create new entry in MongoDB via API
     try {
-      const response = await fetch("/api/entries", {
+      const response = await authFetch("/api/entries", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: user.id,
           title,
           date: new Date().toISOString(),
           content,
